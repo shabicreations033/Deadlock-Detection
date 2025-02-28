@@ -7,40 +7,44 @@
 
 using namespace std;
 
+// Function to print table header
 void printTableHeader(const vector<string>& headers) {
     cout << "  +";
     for (size_t i = 0; i < headers.size(); ++i) {
-        cout << string(9, '-') << "+";
+        cout << string(11, '-') << "+";
     }
     cout << endl;
     cout << "  |";
     for (const string& header : headers) {
-        cout << setw(9) << left << header << "|";
+        cout << setw(10) << left << header << "|";
     }
     cout << endl;
     cout << "  +";
     for (size_t i = 0; i < headers.size(); ++i) {
-        cout << string(9, '-') << "+";
+        cout << string(11, '-') << "+";
     }
     cout << endl;
 }
 
+// Function to print table row with integer data
 void printTableRow(const vector<int>& rowData) {
     cout << "  |";
     for (int data : rowData) {
-        cout << setw(9) << right << data << "|";
+        cout << setw(10) << right << data << "|";
     }
     cout << endl;
 }
 
+// Function to print table footer
 void printTableFooter(const vector<string>& headers) {
     cout << "  +";
     for (size_t i = 0; i < headers.size(); ++i) {
-        cout << string(9, '-') << "+";
+        cout << string(11, '-') << "+";
     }
     cout << endl;
 }
 
+// Class for Resource Allocation Graph implementation
 class ResourceAllocationGraph {
 private:
     int numProcesses, numResources;
@@ -52,11 +56,15 @@ private:
     void printResourceInstancesTable_internal(const string& title, const vector<int>& instances) {
         cout << "\n" << title << ":\n";
         vector<string> headers;
+        headers.push_back("Resource");
         for (int j = 0; j < numResources; ++j) {
             headers.push_back("R" + to_string(j));
         }
         printTableHeader(headers);
+
+        cout << "  | " << setw(10) << left << "Instances" << "|";
         printTableRow(instances);
+
         printTableFooter(headers);
     }
 
@@ -70,7 +78,7 @@ private:
         printTableHeader(headers);
         for (int i = 0; i < numProcesses; ++i) {
             vector<int> rowData = matrix[i];
-            cout << "  | " << setw(9) << left << rowHeaderPrefix + to_string(i) << "|";
+            cout << "  | " << setw(10) << left << rowHeaderPrefix + to_string(i) << "|";
             printTableRow(rowData);
         }
         printTableFooter(headers);
@@ -96,7 +104,7 @@ public:
             cout << "Instances of Resource R" << j << ": ";
             cin >> totalResourceInstances[j];
         }
-        printResourceInstancesTable("Total Resource Instances");
+        printTotalResourceInstancesTable("Total Resource Instances");
 
 
         cout << "\nCurrently available instances for each resource type:\n";
@@ -104,7 +112,7 @@ public:
             cout << "Available instances of R" << j << ": ";
             cin >> availableResources[j];
         }
-        printResourceInstancesTable("Available Resource Instances");
+        printAvailableResourceInstancesTable("Available Resource Instances");
 
 
         cout << "\nAllocation Matrix (resources allocated to each process):\n";
@@ -140,7 +148,7 @@ public:
                 iota(resOrder.begin(), resOrder.end(), 0);
                 return;
             }
-            for (int j = 0; i < j; ++j) {
+            for (int j = 0; j < i; ++j) {
                 if (tempOrder[i] == tempOrder[j]) {
                     cout << "Duplicate resource index. Using default order.\n";
                     iota(resOrder.begin(), resOrder.end(), 0);
@@ -158,13 +166,13 @@ public:
 
 
     void buildGraph() {
-        for (auto &row : adjMatrix) fill(row.begin(), row.end(), 0);
+        adjMatrix.assign(numProcesses + numResources, vector<int>(numProcesses + numResources, 0));
         for (int i = 0; i < numProcesses; i++) {
             for (int j = 0; j < numResources; j++) {
                 if (allocationMatrix[i][j] > 0)
-                    adjMatrix[numResources + j][i] = 1;
+                    adjMatrix[numResources + j][i] = 1; // Resource to Process edge
                 if (requestMatrix[i][j] > 0)
-                    adjMatrix[i][numResources + j] = 1;
+                    adjMatrix[i][numResources + j] = 1; // Process to Resource edge
             }
         }
     }
@@ -213,7 +221,7 @@ public:
 
     bool detectDeadlock() {
         cout << "\n-------- Deadlock Detection Process --------\n";
-        printResourceInstancesTable("Current Available Resource Instances");
+        printAvailableResourceInstancesTable("Current Available Resource Instances");
         printMatrixTable("Current Allocation Matrix");
         printMatrixTable("Current Request Matrix");
 
@@ -223,7 +231,7 @@ public:
         vector<int> cycleNodes;
         int cycleStart = -1;
 
-        for (int i = 0; i < numResources + numProcesses; i++) {
+        for (int i = 0; i < numProcesses + numResources; i++) {
             if (!visited[i] && detectCycleUtil(i, visited, recStack, cycleNodes, cycleStart)) {
                 cout << "\n******************** Deadlock Detected! ********************\n";
                 printCycleDetails(cycleNodes, cycleStart);
@@ -303,7 +311,7 @@ public:
                     if (resOrder[orderIndex] == resourceID) requestedResourceIndexInOrder = orderIndex;
                 }
 
-                if (requestedResourceIndexInOrder < heldResourceIndexInOrder) {
+                if (requestedResourceIndexInOrder != -1 && heldResourceIndexInOrder != -1 && requestedResourceIndexInOrder < heldResourceIndexInOrder) {
                     cout << "Resource Order Violation: Process P" << processID
                          << " already holds R" << j << " (order index " << heldResourceIndexInOrder << "), cannot request R"
                          << resourceID << " (order index " << requestedResourceIndexInOrder << " which is lower).\n";
@@ -320,7 +328,7 @@ public:
             requestMatrix[processID][resourceID] = 0;
             buildGraph();
             cout << "Successfully allocated " << units << " units of R" << resourceID << " to Process P" << processID << ".\n";
-            printResourceInstancesTable("Updated Available Resource Instances");
+            printAvailableResourceInstancesTable("Updated Available Resource Instances");
             printMatrixTable("Updated Allocation Matrix");
             cout << "-------- Resource Request Process Completed --------\n";
             return true;
@@ -358,7 +366,7 @@ public:
         availableResources[resourceID] += units;
         buildGraph();
         cout << "Successfully released " << units << " units of R" << resourceID << " from Process P" << processID << ".\n";
-        printResourceInstancesTable("Updated Available Resource Instances");
+        printAvailableResourceInstancesTable("Updated Available Resource Instances");
         printMatrixTable("Updated Allocation Matrix");
         cout << "-------- Resource Release Process Completed --------\n";
     }
@@ -372,7 +380,7 @@ public:
                 processesToKill.insert(node);
             }
         }
-        processesToKill.insert(cycleStart);
+        if (cycleStart != -1) processesToKill.insert(cycleStart); // Include cycleStart in processes to kill
         set<int> killedProcesses;
 
         for (int processID : processesToKill) {
@@ -391,25 +399,28 @@ public:
             }
         }
         buildGraph();
-        printResourceInstancesTable("Updated Available Resource Instances");
+        printAvailableResourceInstancesTable("Updated Available Resource Instances");
         printMatrixTable("Updated Allocation Matrix");
         cout << "-------- Deadlock Resolution Process Completed --------\n";
     }
 
-    void printResourceInstancesTable(const string& title) {
+    void printAvailableResourceInstancesTable(const string& title) {
         printResourceInstancesTable_internal(title, availableResources);
     }
+
+    void printTotalResourceInstancesTable(const string& title) {
+        printResourceInstancesTable_internal(title, totalResourceInstances);
+    }
+
 
     void printMatrixTable(const string& title) {
         printMatrixTable_internal(title, allocationMatrix, "P");
     }
-
-
 };
 
+// Class for Wait-For Graph implementation
 class WaitForGraph {
-    int numProcesses;
-    vector<vector<int>> waitGraph;
+private: // Making printWaitForGraphTable private again as it's intended to be part of the class's internal printing
 
     void printWaitForGraphTable() {
         cout << "\nWait-For Graph Adjacency Matrix:\n";
@@ -420,181 +431,272 @@ class WaitForGraph {
         }
         printTableHeader(headers);
         for (int i = 0; i < numProcesses; ++i) {
-            vector<int> rowData = waitGraph[i];
-            cout << "  | " << setw(9) << left << "P" + to_string(i) << "|";
-            printTableRow(rowData);
+            vector<string> rowHeaders;
+            rowHeaders.push_back("P" + to_string(i));
+            cout << "  | " << setw(10) << left << "P" + to_string(i) << "|";
+            printTableRow(waitGraph[i]);
         }
         printTableFooter(headers);
     }
 
+    int numProcesses;
+    vector<vector<int>> waitGraph;
+    bool preventionEnabled;
 
-public:
-    WaitForGraph(int p) : numProcesses(p) {
+
+public: // Public section for the intended public functions of WaitForGraph
+    WaitForGraph(int p) : numProcesses(p), preventionEnabled(false) {
         waitGraph.resize(p, vector<int>(p, 0));
+    }
+
+    void setPreventionMode(bool enable) {
+        preventionEnabled = enable;
+        cout << "Wait-For Graph Prevention Mode " << (enable ? "Enabled" : "Disabled") << ".\n";
     }
 
     void inputGraph() {
         cout << "Enter Wait-For Graph adjacency matrix (0 or 1):\n";
+        cout << "Rule: Process P_i can only wait for P_j if j > i when prevention is enabled.\n";
         for (int i = 0; i < numProcesses; i++) {
             cout << "Process P" << i << " -> ";
             for (int j = 0; j < numProcesses; j++) {
-                cin >> waitGraph[i][j];
+                int waitValue;
+                cin >> waitValue;
+                if (waitValue != 0 && waitValue != 1) {
+                    cout << "Invalid input. Please enter 0 or 1.\n";
+                    j--;
+                    continue;
+                }
+                if (waitValue == 1 && preventionEnabled && j <= i) {
+                    cout << "Prevention rule violated: P" << i << " cannot wait for P" << j << ".\n";
+                    cout << "Edge from P" << i << " to P" << j << " not added.\n";
+                    waitGraph[i][j] = 0;
+                } else {
+                    waitGraph[i][j] = waitValue;
+                }
             }
         }
         printWaitForGraphTable();
     }
 
-    void printGraph();
-    bool detectDeadlock();
-    bool detectCycleUtil(int, vector<bool>&, vector<bool>&);
-};
-
-
-void WaitForGraph::printGraph() {
-    cout << "\nWait-For Graph Representation:\n";
-    for (int i = 0; i < numProcesses; i++) {
-        for (int j = 0; j < numProcesses; j++) {
-            if (waitGraph[i][j])
-                cout << "Process P" << i << " -> Process P" << j << endl;
-        }
-    }
-}
-
-bool WaitForGraph::detectDeadlock() {
-    cout << "\n-------- Wait-For Graph Deadlock Detection Process --------\n";
-    printWaitForGraphTable();
-    printGraph();
-    vector<bool> visited(numProcesses, false);
-    vector<bool> recStack(numProcesses, false);
-    for (int i = 0; i < numProcesses; i++) {
-        if (!visited[i] && detectCycleUtil(i, visited, recStack)) {
-            cout << "\n******************** Deadlock Detected in Wait-For Graph! ********************\n";
-            cout << "-------- Wait-For Graph Deadlock Detection Process Completed --------\n";
-            return true;
-        }
-    }
-    cout << "\nNo deadlock detected in Wait-For Graph.\n";
-    cout << "-------- Wait-For Graph Deadlock Detection Process Completed --------\n";
-    return false;
-}
-
-bool WaitForGraph::detectCycleUtil(int node, vector<bool> &visited, vector<bool> &recStack) {
-    if (!visited[node]) {
-        visited[node] = true;
-        recStack[node] = true;
-
+    void printGraph() {
+        cout << "\nWait-For Graph Representation:\n";
         for (int i = 0; i < numProcesses; i++) {
-            if (waitGraph[node][i]) {
-                if (!visited[i] && detectCycleUtil(i, visited, recStack))
-                    return true;
-                else if (recStack[i])
-                    return true;
+            for (int j = 0; j < numProcesses; j++) {
+                if (waitGraph[i][j])
+                    cout << "  Process P" << i << " -> Process P" << j << endl;
             }
         }
     }
-    recStack[node] = false;
-    return false;
-}
 
+    bool detectDeadlock() {
+        cout << "\n-------- Wait-For Graph Deadlock Detection Process --------\n";
+        printWaitForGraphTable();
+        printGraph();
+        vector<bool> visited(numProcesses, false);
+        vector<bool> recStack(numProcesses, false);
+        vector<int> cycleNodes;
+        int cycleStart = -1;
+
+        for (int i = 0; i < numProcesses; i++) {
+            if (!visited[i] && detectCycleUtil(i, visited, recStack, cycleNodes, cycleStart)) {
+                cout << "\n******************** Deadlock Detected in Wait-For Graph! ********************\n";
+                cout << "Deadlock cycle: ";
+                for (size_t j = 0; j < cycleNodes.size(); ++j) {
+                    cout << "P" << cycleNodes[j];
+                    if (j < cycleNodes.size() - 1) {
+                        cout << " -> ";
+                    }
+                }
+                cout << " -> P" << cycleStart << endl;
+
+
+                char killChoice;
+                cout << "Deadlock detected in Wait-For Graph. Terminate program? (y/n): ";
+                cin >> killChoice;
+                if (killChoice == 'n' || killChoice == 'N') {
+                    cout << "-------- Wait-For Graph Deadlock Detection Process Completed --------\n";
+                    return true;
+                }
+                else
+                {
+                    cout << "-------- Wait-For Graph Deadlock Detection Process Completed --------\n";
+                    return false;
+                }
+            }
+        }
+        cout << "\nNo deadlock detected in Wait-For Graph.\n";
+        cout << "-------- Wait-For Graph Deadlock Detection Process Completed --------\n";
+        return false;
+    }
+
+    bool detectCycleUtil(int node, vector<bool> &visited, vector<bool> &recStack, vector<int> &cycleNodes, int &cycleStart) {
+        if (!visited[node]) {
+            visited[node] = true;
+            recStack[node] = true;
+            cycleNodes.push_back(node);
+
+            for (int i = 0; i < numProcesses; i++) {
+                if (waitGraph[node][i]) {
+                    if (!visited[i] && detectCycleUtil(i, visited, recStack, cycleNodes, cycleStart))
+                        return true;
+                    else if (recStack[i]) {
+                        cycleStart = i;
+                        cycleNodes.push_back(i);
+                        return true;
+                    }
+                }
+            }
+        }
+        recStack[node] = false;
+        cycleNodes.pop_back();
+        return false;
+    }
+};
 
 
 int main() {
     int choice, p, r, methodChoice;
     int ragOperationChoice;
+    bool continueMainLoop = true;
 
-    cout << "Choose deadlock method:\n1. Resource Allocation Graph (RAG)\n2. Wait-For Graph (WFG)\nEnter choice: ";
-    cin >> choice;
+    while(continueMainLoop) {
+        cout << "Choose deadlock method:\n1. Resource Allocation Graph (RAG)\n2. Wait-For Graph (WFG)\n0. Exit Program\nEnter choice: ";
+        cin >> choice;
 
-    switch (choice) {
-        case 1: {
-            cout << "Enter number of processes: ";
-            cin >> p;
-            cout << "Enter number of resources: ";
-            cin >> r;
-            ResourceAllocationGraph rag(p, r);
-            rag.inputMatrices();
+        switch (choice) {
+            case 1: {
+                cout << "Enter number of processes: ";
+                cin >> p;
+                cout << "Enter number of resources: ";
+                cin >> r;
+                ResourceAllocationGraph rag(p, r);
+                rag.inputMatrices();
 
-            do {
-                cout << "\nChoose RAG operation:\n";
-                cout << "1. Detect Deadlock\n";
-                cout << "2. Deadlock Prevention (Resource Ordering)\n";
-                cout << "3. Detect and Resolve Deadlock\n";
-                cout << "4. Show Current System Tables\n";
-                cout << "0. Exit RAG Menu\nEnter choice: ";
-                cin >> methodChoice;
+                do {
+                    cout << "\nChoose RAG operation:\n";
+                    cout << "1. Detect Deadlock\n";
+                    cout << "2. Deadlock Prevention (Resource Ordering)\n";
+                    cout << "3. Detect and Resolve Deadlock\n";
+                    cout << "4. Show Current System Tables\n";
+                    cout << "0. Exit RAG Menu\nEnter choice: ";
+                    cin >> methodChoice;
 
-                switch (methodChoice) {
-                    case 1:
-                        rag.detectDeadlock();
-                        break;
-                    case 2: {
-                        rag.setResourceOrder();
-                        int preventionOperationChoice;
-                        do {
-                            cout << "\nRAG Deadlock Prevention Menu:\n";
-                            cout << "1. Request Resource\n2. Release Resource\n3. Print Graph\n4. Detect Deadlock (for monitoring)\n5. Show Current System Tables\n0. Exit Prevention Mode\nEnter operation: ";
-                            cin >> preventionOperationChoice;
-                            switch (preventionOperationChoice) {
-                                case 1: {
-                                    int processID, resourceID, units;
-                                    cout << "Enter Process ID, Resource ID, Units to request: ";
-                                    cin >> processID >> resourceID >> units;
-                                    rag.requestResource(processID, resourceID, units);
-                                    break;
+                    switch (methodChoice) {
+                        case 1:
+                            rag.detectDeadlock();
+                            break;
+                        case 2: {
+                            rag.setResourceOrder();
+                            int preventionOperationChoice;
+                            do {
+                                cout << "\nRAG Deadlock Prevention Menu:\n";
+                                cout << "1. Request Resource\n2. Release Resource\n3. Print Graph\n4. Detect Deadlock (for monitoring)\n5. Show Current System Tables\n0. Exit Prevention Mode\nEnter operation: ";
+                                cin >> preventionOperationChoice;
+                                switch (preventionOperationChoice) {
+                                    case 1: {
+                                        int processID, resourceID, units;
+                                        cout << "Enter Process ID, Resource ID, Units to request: ";
+                                        cin >> processID >> resourceID >> units;
+                                        rag.requestResource(processID, resourceID, units);
+                                        break;
+                                    }
+                                    case 2: {
+                                        int processID, resourceID, units;
+                                        cout << "Enter Process ID, Resource ID, Units to release: ";
+                                        cin >> processID >> resourceID >> units;
+                                        rag.releaseResource(processID, resourceID, units);
+                                        break;
+                                    }
+                                    case 3:
+                                        rag.printGraphRepresentation();
+                                        break;
+                                    case 4:
+                                        rag.detectDeadlock();
+                                        break;
+                                    case 5:
+                                        rag.printAvailableResourceInstancesTable("Current Available Resource Instances");
+                                        rag.printTotalResourceInstancesTable("Current Total Resource Instances");
+                                        rag.printMatrixTable("Current Allocation Matrix");
+                                        rag.printMatrixTable("Current Request Matrix");
+                                        break;
+                                    case 0:
+                                        cout << "Exiting Prevention Mode.\n";
+                                        break;
+                                    default:
+                                        cout << "Invalid operation in Prevention Menu.\n";
+                                        break;
                                 }
-                                case 2: {
-                                    int processID, resourceID, units;
-                                    cout << "Enter Process ID, Resource ID, Units to release: ";
-                                    cin >> processID >> resourceID >> units;
-                                    rag.releaseResource(processID, resourceID, units);
-                                    break;
-                                }
-                                case 3:
-                                    rag.printGraphRepresentation();
-                                    break;
-                                case 4:
-                                    rag.detectDeadlock();
-                                    break;
-                                case 5:
-                                    rag.printResourceInstancesTable("Current Available Resource Instances");
-                                    rag.printMatrixTable("Current Allocation Matrix");
-                                    rag.printMatrixTable("Current Request Matrix");
-                                    break;
-                                case 0:
-                                    cout << "Exiting Prevention Mode.\n";
-                                    break;
-                                default:
-                                    cout << "Invalid operation in Prevention Menu.\n";
-                                    break;
-                            }
-                        } while (preventionOperationChoice != 0);
-                        break;
+                            } while (preventionOperationChoice != 0);
+                            break;
+                        }
+                        case 3:
+                            rag.detectDeadlock();
+                            break;
+                        case 4:
+                            rag.printAvailableResourceInstancesTable("Current Available Resource Instances");
+                            rag.printTotalResourceInstancesTable("Current Total Resource Instances");
+                            rag.printMatrixTable("Current Allocation Matrix");
+                            rag.printMatrixTable("Current Request Matrix");
+                            break;
+                        case 0:
+                            cout << "Exiting RAG Menu.\n";
+                            break;
+                        default:
+                            cout << "Invalid method choice for RAG.\n";
+                            break;
                     }
-                    case 3:
-                        rag.detectDeadlock();
-                        break;
-                    case 4:
-                        rag.printResourceInstancesTable("Current Available Resource Instances");
-                        rag.printMatrixTable("Current Allocation Matrix");
-                        rag.printMatrixTable("Current Request Matrix");
-                        break;
-                    case 0:
-                        cout << "Exiting RAG Menu.\n";
-                        break;
-                    default:
-                        cout << "Invalid method choice for RAG.\n";
-                        break;
-                }
-            } while (methodChoice != 0);
-            break;
+                } while (methodChoice != 0);
+                break;
+            }
+            case 2: {
+                cout << "Enter number of processes: ";
+                cin >> p;
+                WaitForGraph wfg(p);
+                int wfgMethodChoice;
+                do {
+                    cout << "\nChoose WFG operation:\n";
+                    cout << "1. Detect Deadlock\n";
+                    cout << "2. Enable Wait-For Graph Deadlock Prevention\n";
+                    cout << "3. Disable Wait-For Graph Deadlock Prevention\n";
+                    cout << "4. Input Wait-For Graph\n";
+                    cout << "5. Show Current Wait-For Graph\n";
+                    cout << "0. Exit WFG Menu\nEnter choice: ";
+                    cin >> wfgMethodChoice;
+
+                    switch (wfgMethodChoice) {
+                        case 1:
+                            wfg.detectDeadlock();
+                            break;
+                        case 2:
+                            wfg.setPreventionMode(true);
+                            break;
+                        case 3:
+                            wfg.setPreventionMode(false);
+                            break;
+                        case 4:
+                            wfg.inputGraph();
+                            break;
+                        case 5:
+                            wfg.printGraph(); // Removed printWaitForGraphTable() call here, as printGraph() already implicitly shows the graph representation. If you need to show the table explicitly, call printWaitForGraphTable() here as well.
+                            break;
+                        case 0:
+                            cout << "Exiting WFG Menu.\n";
+                            break;
+                        default:
+                            cout << "Invalid method choice for WFG.\n";
+                            break;
+                    }
+                } while (wfgMethodChoice != 0);
+                break;
+            }
+            case 0:
+                cout << "Exiting Program.\n";
+                continueMainLoop = false;
+                break;
+            default:
+                cout << "Invalid choice.\n";
         }
-        case 2:
-            cout << "Enter number of processes: ";
-            cin >> p;
-            { WaitForGraph wfg(p); wfg.inputGraph(); wfg.detectDeadlock(); }
-            break;
-        default:
-            cout << "Invalid choice.\n";
     }
     return 0;
 }
